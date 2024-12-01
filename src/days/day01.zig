@@ -28,16 +28,6 @@ fn nextLine(input: []const u8, i: *usize) void {
     while (i.* < input.len and (input[i.*] == '\r' or input[i.*] == '\n')) : (i.* += 1) {}
 }
 
-fn order(a: i32, b: i32) std.math.Order {
-    if (a < b) {
-        return .lt;
-    } else if (a >= b) {
-        return .gt;
-    } else {
-        unreachable;
-    }
-}
-
 fn part1(alloc: std.mem.Allocator, input: []const u8) !u32 {
     var left = try std.ArrayList(i32).initCapacity(alloc, 1000);
     var right = try std.ArrayList(i32).initCapacity(alloc, 1000);
