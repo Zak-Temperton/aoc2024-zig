@@ -30,7 +30,9 @@ fn nextLine(input: []const u8, i: *usize) void {
 
 fn part1(alloc: std.mem.Allocator, input: []const u8) !u32 {
     var left = try std.ArrayList(i32).initCapacity(alloc, 1000);
+    defer left.deinit();
     var right = try std.ArrayList(i32).initCapacity(alloc, 1000);
+    defer right.deinit();
 
     var i: usize = 0;
     while (i < input.len) {
