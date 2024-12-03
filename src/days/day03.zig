@@ -6,9 +6,9 @@ pub fn run(alloc: std.mem.Allocator, stdout: anytype) !void {
     defer alloc.free(buffer);
 
     var timer = try std.time.Timer.start();
-    const p1 = try part1(buffer);
+    const p1 = part1(buffer);
     const p1_time = timer.lap();
-    const p2 = try part2(buffer);
+    const p2 = part2(buffer);
     const p2_time = timer.read();
     try stdout.print("Day03:\n  part1: {d} {d}ns\n  part2: {d} {d}ns\n", .{ p1, p1_time, p2, p2_time });
 }
@@ -74,7 +74,7 @@ fn nextIntruction(input: []const u8, i: *usize) ?u32 {
     return null;
 }
 
-fn part1(input: []const u8) !u32 {
+fn part1(input: []const u8) u32 {
     var sum: u32 = 0;
     var i: usize = 0;
     while (nextMul(input, &i)) |mul| {
@@ -83,7 +83,7 @@ fn part1(input: []const u8) !u32 {
     return sum;
 }
 
-fn part2(input: []const u8) !u32 {
+fn part2(input: []const u8) u32 {
     var sum: u32 = 0;
     var i: usize = 0;
     while (nextIntruction(input, &i)) |mul| {
