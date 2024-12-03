@@ -10,7 +10,7 @@ pub fn run(alloc: std.mem.Allocator, stdout: anytype) !void {
     const p1_time = timer.lap();
     const p2 = try part2(buffer);
     const p2_time = timer.read();
-    try stdout.print("Day02:\n  part1: {d} {d}ns\n  part2: {d} {d}ns\n", .{ p1, p1_time, p2, p2_time });
+    try stdout.print("Day03:\n  part1: {d} {d}ns\n  part2: {d} {d}ns\n", .{ p1, p1_time, p2, p2_time });
 }
 
 fn readInt(comptime T: type, input: []const u8, i: *usize) T {
