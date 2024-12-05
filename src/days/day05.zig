@@ -50,11 +50,13 @@ fn part1(alloc: std.mem.Allocator, input: []const u8) !u32 {
     }
     i += 2;
     var sum: u32 = 0;
+    var line = std.ArrayList(u8).init(alloc);
+    defer line.deinit();
+    var disallowed = std.ArrayList(u8).init(alloc);
+    defer disallowed.deinit();
     line: while (i < input.len) {
-        var line = std.ArrayList(u8).init(alloc);
-        defer line.deinit();
-        var disallowed = std.ArrayList(u8).init(alloc);
-        defer disallowed.deinit();
+        defer line.clearRetainingCapacity();
+        defer disallowed.clearRetainingCapacity();
         while (i < input.len) : (i += 1) {
             const num = readInt(u8, input, &i);
             if (std.mem.containsAtLeast(u8, disallowed.items, 1, &.{num})) {
@@ -76,7 +78,65 @@ fn part1(alloc: std.mem.Allocator, input: []const u8) !u32 {
     return sum;
 }
 fn part2(alloc: std.mem.Allocator, input: []const u8) !u32 {
-    _ = alloc; // autofix
-    _ = input; // autofix
-    return 0;
+    var rules = std.AutoHashMap(u8, std.ArrayList(u8)).init(alloc);
+    defer {
+        var iter = rules.valueIterator();
+        while (iter.next()) |next| {
+            next.deinit();
+        }
+        rules.deinit();
+    }
+
+    var i: usize = 0;
+    while (input[i] != '\r') {
+        const left = readInt(u8, input, &i);
+        i += 1;
+        const right = readInt(u8, input, &i);
+        i += 2;
+        const res = try rules.getOrPut(right);
+        if (res.found_existing) {
+            try res.value_ptr.append(left);
+        } else {
+            res.value_ptr.* = std.ArrayList(u8).init(alloc);
+            try res.value_ptr.append(left);
+        }
+    }
+    i += 2;
+    var line = std.ArrayList(u8).init(alloc);
+    defer line.deinit();
+    var disallowed = std.ArrayList(u8).init(alloc);
+    defer disallowed.deinit();
+
+    var sum: u32 = 0;
+    while (i < input.len) {
+        defer line.clearRetainingCapacity();
+        defer disallowed.clearRetainingCapacity();
+        var valid = true;
+        while (i < input.len) : (i += 1) {
+            const num = readInt(u8, input, &i);
+            if (std.mem.containsAtLeast(u8, disallowed.items, 1, &.{num})) {
+                valid = false;
+            }
+            try line.append(num);
+            if (rules.get(num)) |rule| {
+                try disallowed.appendSlice(rule.items);
+            }
+            if (input[i] != ',') {
+                i += 2;
+                break;
+            }
+        }
+        if (!valid) {
+            std.mem.sortUnstable(u8, line.items, rules, lessThan);
+            sum += line.items[line.items.len / 2];
+        }
+    }
+    return sum;
+}
+
+fn lessThan(rules: std.AutoHashMap(u8, std.ArrayList(u8)), lhs: u8, rhs: u8) bool {
+    if (rules.get(lhs)) |rule| {
+        return std.mem.containsAtLeast(u8, rule.items, 1, &.{rhs});
+    }
+    return false;
 }
