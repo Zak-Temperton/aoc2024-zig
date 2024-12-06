@@ -89,7 +89,6 @@ const Guard = struct {
         defer alloc.free(tmp_been);
         @memcpy(tmp_been, been);
         var dir = tmp_guard.dir;
-
         while (tmp_guard.step(map, tmp_been)) {
             if (dir != tmp_guard.dir) {
                 for (checks.items) |check| {
@@ -114,7 +113,6 @@ const Guard = struct {
                         map[self.y - 1] |= ONE << self.x;
                         const loop = try self.testLoop(alloc, map, been);
                         map[self.y - 1] ^= ONE << self.x;
-
                         return loop;
                     } else {
                         return false;
@@ -131,7 +129,6 @@ const Guard = struct {
                         map[self.y + 1] |= ONE << self.x;
                         const loop = try self.testLoop(alloc, map, been);
                         map[self.y + 1] ^= ONE << self.x;
-
                         return loop;
                     } else {
                         return false;
@@ -148,7 +145,6 @@ const Guard = struct {
                         map[self.y] |= ONE << (self.x - 1);
                         const loop = try self.testLoop(alloc, map, been);
                         map[self.y] ^= ONE << (self.x - 1);
-
                         return loop;
                     } else {
                         return false;
@@ -165,7 +161,6 @@ const Guard = struct {
                         map[self.y] |= ONE << (self.x + 1);
                         const loop = try self.testLoop(alloc, map, been);
                         map[self.y] ^= ONE << (self.x + 1);
-
                         return loop;
                     } else {
                         return false;
@@ -206,14 +201,13 @@ fn part1(alloc: std.mem.Allocator, input: []const u8) !u32 {
         }
     }
     _ = map.pop();
-    var been = try std.ArrayList(u256).initCapacity(alloc, y);
-    defer been.deinit();
-    for (0..y) |_| {
-        been.appendAssumeCapacity(0);
-    }
-    while (guard.step(map.items, been.items)) {}
+    const been = try alloc.alloc(u256, map.items.len);
+    defer alloc.free(been);
+    @memset(been, 0);
+
+    while (guard.step(map.items, been)) {}
     var sum: u32 = 0;
-    for (been.items) |val| {
+    for (been) |val| {
         sum += @popCount(val);
     }
     return sum;
@@ -247,15 +241,13 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !u32 {
     }
     _ = map.pop();
 
-    var been = try std.ArrayList(u256).initCapacity(alloc, y);
-    defer been.deinit();
-    for (0..y) |_| {
-        been.appendAssumeCapacity(0);
-    }
+    const been = try alloc.alloc(u256, map.items.len);
+    defer alloc.free(been);
+    @memset(been, 0);
 
     var sum: u32 = 0;
-    while (guard.step(map.items, been.items)) {
-        if (try guard.obstruct(alloc, map.items, been.items)) {
+    while (guard.step(map.items, been)) {
+        if (try guard.obstruct(alloc, map.items, been)) {
             sum += 1;
         }
     }
