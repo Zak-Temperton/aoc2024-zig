@@ -27,6 +27,9 @@ fn possible(nums: []u64, target: u64) bool {
     if (nums.len == 1) {
         return nums[0] == target;
     }
+    if (nums[0] >= target) {
+        return false;
+    }
     const tmp: u64 = nums[1];
     defer nums[1] = tmp;
     nums[1] = nums[0] * nums[1];
@@ -69,6 +72,9 @@ fn concat(lhs: u64, rhs: u64) u64 {
 fn possible2(nums: []u64, target: u64) bool {
     if (nums.len == 1) {
         return nums[0] == target;
+    }
+    if (nums[0] >= target) {
+        return false;
     }
     const tmp: u64 = nums[1];
     defer nums[1] = tmp;
