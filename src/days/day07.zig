@@ -65,8 +65,12 @@ fn part1(alloc: std.mem.Allocator, input: []const u8) !u64 {
 }
 
 fn concat(lhs: u64, rhs: u64) u64 {
-    const log: u64 = @intFromFloat(@log10(@as(f32, @floatFromInt(rhs))));
-    return lhs * std.math.pow(u64, 10, log + 1) + rhs;
+    var i = rhs;
+    var out = lhs;
+    while (i > 0) : (i /= 10) {
+        out *= 10;
+    }
+    return out + rhs;
 }
 
 fn possible2(nums: []u64, target: u64) bool {
