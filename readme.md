@@ -11,3 +11,4 @@ My solutions to Advent of Code 2024 in Zig
 | 05  | [Print Queue](https://adventofcode.com/2024/day/5)                              | [day05.zig](src/days/day05.zig) |
 | 06  | [Guard Gallivant](https://adventofcode.com/2024/day/6)                          | [day06.zig](src/days/day06.zig) |
 | 07  | [Bridge Repair](https://adventofcode.com/2024/day/7)                            | [day07.zig](src/days/day07.zig) |
+| 08  | [Resonant Collinearity](https://adventofcode.com/2024/day/8)                    | [day08.zig](src/days/day08.zig) |
