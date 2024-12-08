@@ -26,7 +26,16 @@ fn readInt(comptime T: type, input: []const u8, i: *usize) T {
 
 const Antenna = struct { x: u32, y: u32 };
 
-fn findAntennas(input: []const u8, antennas: *std.AutoHashMap(u8, std.ArrayList(Antenna))) !u32 {
+fn getIndex(char: u8) u8 {
+    switch (char) {
+        '0'...'9' => return char - '0',
+        'a'...'z' => return char - 'a' + 10,
+        'A'...'Z' => return char - 'A' + 36,
+        else => unreachable,
+    }
+}
+
+fn findAntennas(alloc: std.mem.Allocator, input: []const u8, antennas: []?std.ArrayList(Antenna)) !u32 {
     var x: u32 = 0;
     var y: u32 = 0;
     for (input) |c| {
@@ -37,11 +46,13 @@ fn findAntennas(input: []const u8, antennas: *std.AutoHashMap(u8, std.ArrayList(
                 x = 0;
             },
             else => {
-                const entry = try antennas.getOrPut(c);
-                if (!entry.found_existing) {
-                    entry.value_ptr.* = std.ArrayList(Antenna).init(antennas.allocator);
+                const index = getIndex(c);
+                if (antennas[index]) |*frequency| {
+                    try frequency.append(.{ .x = x, .y = y });
+                } else {
+                    antennas[index] = std.ArrayList(Antenna).init(alloc);
+                    try antennas[index].?.append(.{ .x = x, .y = y });
                 }
-                try entry.value_ptr.append(.{ .x = x, .y = y });
                 x += 1;
             },
         }
@@ -49,28 +60,29 @@ fn findAntennas(input: []const u8, antennas: *std.AutoHashMap(u8, std.ArrayList(
     return y;
 }
 
-fn findAntinodes(antennas: std.AutoHashMap(u8, std.ArrayList(Antenna)), antinodes: []u64, size: u32) void {
+fn findAntinodes(antennas: []?std.ArrayList(Antenna), antinodes: []u64, size: u32) void {
     const ONE: u64 = 1;
-    var iter = antennas.valueIterator();
-    while (iter.next()) |frequency| {
-        for (frequency.items, 0..) |a1, i| {
-            for (frequency.items[i + 1 ..]) |a2| {
-                const yy = a2.y - a1.y;
-                if (a1.x > a2.x) {
-                    const xx = a1.x - a2.x;
-                    if (xx + a1.x < size and a1.y >= yy) {
-                        antinodes[a1.y - yy] |= ONE << @truncate(a1.x + xx);
-                    }
-                    if (xx <= a2.x and a2.y + yy < size) {
-                        antinodes[a2.y + yy] |= ONE << @truncate(a2.x - xx);
-                    }
-                } else {
-                    const xx = a2.x - a1.x;
-                    if (xx <= a1.x and a1.y >= yy) {
-                        antinodes[a1.y - yy] |= ONE << @truncate(a1.x - xx);
-                    }
-                    if (xx + a2.x < size and a2.y + yy < size) {
-                        antinodes[a2.y + yy] |= ONE << @truncate(a2.x + xx);
+    for (antennas) |antenna| {
+        if (antenna) |frequency| {
+            for (frequency.items, 0..) |a1, i| {
+                for (frequency.items[i + 1 ..]) |a2| {
+                    const yy = a2.y - a1.y;
+                    if (a1.x > a2.x) {
+                        const xx = a1.x - a2.x;
+                        if (xx + a1.x < size and a1.y >= yy) {
+                            antinodes[a1.y - yy] |= ONE << @truncate(a1.x + xx);
+                        }
+                        if (xx <= a2.x and a2.y + yy < size) {
+                            antinodes[a2.y + yy] |= ONE << @truncate(a2.x - xx);
+                        }
+                    } else {
+                        const xx = a2.x - a1.x;
+                        if (xx <= a1.x and a1.y >= yy) {
+                            antinodes[a1.y - yy] |= ONE << @truncate(a1.x - xx);
+                        }
+                        if (xx + a2.x < size and a2.y + yy < size) {
+                            antinodes[a2.y + yy] |= ONE << @truncate(a2.x + xx);
+                        }
                     }
                 }
             }
@@ -78,60 +90,18 @@ fn findAntinodes(antennas: std.AutoHashMap(u8, std.ArrayList(Antenna)), antinode
     }
 }
 
-fn findAntinodes2(antennas: std.AutoHashMap(u8, std.ArrayList(Antenna)), antinodes: []u64, size: u32) void {
-    const ONE: u64 = 1;
-    var iter = antennas.valueIterator();
-    while (iter.next()) |frequency| {
-        for (frequency.items, 0..) |a1, i| {
-            for (frequency.items[i + 1 ..]) |a2| {
-                const yy = a2.y - a1.y;
-                if (a1.x > a2.x) {
-                    const xx = a1.x - a2.x;
-                    var dx: u32 = 0;
-                    var dy: u32 = 0;
-                    while (dx + a1.x < size and a1.y >= dy) {
-                        antinodes[a1.y - dy] |= ONE << @truncate(a1.x + dx);
-                        dx += xx;
-                        dy += yy;
-                    }
-                    dx = 0;
-                    dy = 0;
-                    while (dx <= a2.x and a2.y + dy < size) {
-                        antinodes[a2.y + dy] |= ONE << @truncate(a2.x - dx);
-                        dx += xx;
-                        dy += yy;
-                    }
-                } else {
-                    const xx = a2.x - a1.x;
-                    var dx: u32 = 0;
-                    var dy: u32 = 0;
-                    while (dx <= a1.x and a1.y >= dy) {
-                        antinodes[a1.y - dy] |= ONE << @truncate(a1.x - dx);
-                        dx += xx;
-                        dy += yy;
-                    }
-                    dx = 0;
-                    dy = 0;
-                    while (dx + a2.x < size and a2.y + dy < size) {
-                        antinodes[a2.y + dy] |= ONE << @truncate(a2.x + dx);
-                        dx += xx;
-                        dy += yy;
-                    }
-                }
+fn part1(alloc: std.mem.Allocator, input: []const u8) !u32 {
+    const antennas = try alloc.alloc(?std.ArrayList(Antenna), 10 + 26 * 2);
+    @memset(antennas, null);
+    defer {
+        for (antennas) |antenna| {
+            if (antenna) |frequency| {
+                frequency.deinit();
             }
         }
+        alloc.free(antennas);
     }
-}
-fn part1(alloc: std.mem.Allocator, input: []const u8) !u32 {
-    var antennas = std.AutoHashMap(u8, std.ArrayList(Antenna)).init(alloc);
-    defer {
-        var iter = antennas.valueIterator();
-        while (iter.next()) |frequency| {
-            frequency.deinit();
-        }
-        antennas.deinit();
-    }
-    const size = try findAntennas(input, &antennas);
+    const size = try findAntennas(alloc, input, antennas);
     const antinodes = try alloc.alloc(u64, size);
     @memset(antinodes, 0);
     defer alloc.free(antinodes);
@@ -145,16 +115,62 @@ fn part1(alloc: std.mem.Allocator, input: []const u8) !u32 {
     return sum;
 }
 
-fn part2(alloc: std.mem.Allocator, input: []const u8) !u32 {
-    var antennas = std.AutoHashMap(u8, std.ArrayList(Antenna)).init(alloc);
-    defer {
-        var iter = antennas.valueIterator();
-        while (iter.next()) |frequency| {
-            frequency.deinit();
+fn findAntinodes2(antennas: []?std.ArrayList(Antenna), antinodes: []u64, size: u32) void {
+    const ONE: u64 = 1;
+    for (antennas) |antenna| {
+        if (antenna) |frequency| {
+            for (frequency.items, 0..) |a1, i| {
+                for (frequency.items[i + 1 ..]) |a2| {
+                    const yy = a2.y - a1.y;
+                    var dx: u32 = 0;
+                    var dy: u32 = 0;
+                    if (a1.x > a2.x) {
+                        const xx = a1.x - a2.x;
+                        while (dx + a1.x < size and a1.y >= dy) {
+                            antinodes[a1.y - dy] |= ONE << @truncate(a1.x + dx);
+                            dx += xx;
+                            dy += yy;
+                        }
+                        dx = 0;
+                        dy = 0;
+                        while (dx <= a2.x and a2.y + dy < size) {
+                            antinodes[a2.y + dy] |= ONE << @truncate(a2.x - dx);
+                            dx += xx;
+                            dy += yy;
+                        }
+                    } else {
+                        const xx = a2.x - a1.x;
+                        while (dx <= a1.x and a1.y >= dy) {
+                            antinodes[a1.y - dy] |= ONE << @truncate(a1.x - dx);
+                            dx += xx;
+                            dy += yy;
+                        }
+                        dx = 0;
+                        dy = 0;
+                        while (dx + a2.x < size and a2.y + dy < size) {
+                            antinodes[a2.y + dy] |= ONE << @truncate(a2.x + dx);
+                            dx += xx;
+                            dy += yy;
+                        }
+                    }
+                }
+            }
         }
-        antennas.deinit();
     }
-    const size = try findAntennas(input, &antennas);
+}
+
+fn part2(alloc: std.mem.Allocator, input: []const u8) !u32 {
+    const antennas = try alloc.alloc(?std.ArrayList(Antenna), 10 + 26 * 2);
+    @memset(antennas, null);
+    defer {
+        for (antennas) |antenna| {
+            if (antenna) |frequency| {
+                frequency.deinit();
+            }
+        }
+        alloc.free(antennas);
+    }
+    const size = try findAntennas(alloc, input, antennas);
     const antinodes = try alloc.alloc(u64, size);
     @memset(antinodes, 0);
     defer alloc.free(antinodes);
