@@ -13,73 +13,6 @@ pub fn run(alloc: std.mem.Allocator, stdout: anytype) !void {
     try stdout.print("Day10:\n  part1: {d} {d}ns\n  part2: {d} {d}ns\n", .{ p1, p1_time, p2, p2_time });
 }
 
-fn trailScore(map: []const std.ArrayList(u8), x: usize, y: usize, cur: u8, nines: *std.ArrayList([2]usize)) !void {
-    if (x > 0) {
-        if (map[y].items[x - 1] == 9 and cur == 8) {
-            var found = false;
-            for (nines.items) |nine| {
-                if (nine[0] == x - 1 and nine[1] == y) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                try nines.append(.{ x - 1, y });
-            }
-        } else if (map[y].items[x - 1] == cur + 1) {
-            try trailScore(map, x - 1, y, cur + 1, nines);
-        }
-    }
-    if (x < map.len - 1) {
-        if (map[y].items[x + 1] == 9 and cur == 8) {
-            var found = false;
-            for (nines.items) |nine| {
-                if (nine[0] == x + 1 and nine[1] == y) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                try nines.append(.{ x + 1, y });
-            }
-        } else if (map[y].items[x + 1] == cur + 1) {
-            try trailScore(map, x + 1, y, cur + 1, nines);
-        }
-    }
-    if (y > 0) {
-        if (map[y - 1].items[x] == 9 and cur == 8) {
-            var found = false;
-            for (nines.items) |nine| {
-                if (nine[0] == x and nine[1] == y - 1) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                try nines.append(.{ x, y - 1 });
-            }
-        } else if (map[y - 1].items[x] == cur + 1) {
-            try trailScore(map, x, y - 1, cur + 1, nines);
-        }
-    }
-    if (y < map.len - 1) {
-        if (map[y + 1].items[x] == 9 and cur == 8) {
-            var found = false;
-            for (nines.items) |nine| {
-                if (nine[0] == x and nine[1] == y + 1) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                try nines.append(.{ x, y + 1 });
-            }
-        } else if (map[y + 1].items[x] == cur + 1) {
-            try trailScore(map, x, y + 1, cur + 1, nines);
-        }
-    }
-}
-
 fn part1(alloc: std.mem.Allocator, input: []const u8) !usize {
     var map = std.ArrayList(std.ArrayList(u8)).init(alloc);
     try map.append(std.ArrayList(u8).init(alloc));
@@ -89,9 +22,14 @@ fn part1(alloc: std.mem.Allocator, input: []const u8) !usize {
         }
         map.deinit();
     }
+    var nine_count: u32 = 0;
     for (input) |c| {
         switch (c) {
-            '0'...'9' => {
+            '0'...'8' => {
+                try map.items[map.items.len - 1].append(c - '0');
+            },
+            '9' => {
+                nine_count += 1;
                 try map.items[map.items.len - 1].append(c - '0');
             },
             '\n' => {
@@ -101,54 +39,82 @@ fn part1(alloc: std.mem.Allocator, input: []const u8) !usize {
         }
     }
     _ = map.pop();
-
-    var nines = std.ArrayList([2]usize).init(alloc);
-    defer nines.deinit();
+    const nines = try alloc.alloc(?u32, nine_count);
 
     var sum: usize = 0;
     for (map.items, 0..) |row, y| {
         for (row.items, 0..) |item, x| {
             if (item == 0) {
-                nines.clearAndFree();
-                try trailScore(map.items, x, y, 0, &nines);
-                sum += nines.items.len;
+                @memset(nines, null);
+                trailScore(map.items, x, y, 0, nines);
+                for (nines) |nine| {
+                    if (nine) |_| {
+                        sum += 1;
+                    }
+                }
             }
         }
     }
     return sum;
 }
 
-fn trailScore2(map: []const std.ArrayList(u8), x: usize, y: usize, cur: u8) u32 {
-    var nines: u32 = 0;
+fn trailScore(map: []const std.ArrayList(u8), x: usize, y: usize, cur: u8, nines: []?u32) void {
     if (x > 0) {
-        if (map[y].items[x - 1] == 9 and cur == 8) {
-            nines += 1;
-        } else if (map[y].items[x - 1] == cur + 1) {
-            nines += trailScore2(map, x - 1, y, cur + 1);
-        }
+        score(map, x - 1, y, cur, nines);
     }
     if (x < map.len - 1) {
-        if (map[y].items[x + 1] == 9 and cur == 8) {
-            nines += 1;
-        } else if (map[y].items[x + 1] == cur + 1) {
-            nines += trailScore2(map, x + 1, y, cur + 1);
-        }
+        score(map, x + 1, y, cur, nines);
     }
     if (y > 0) {
-        if (map[y - 1].items[x] == 9 and cur == 8) {
-            nines += 1;
-        } else if (map[y - 1].items[x] == cur + 1) {
-            nines += trailScore2(map, x, y - 1, cur + 1);
-        }
+        score(map, x, y - 1, cur, nines);
     }
     if (y < map.len - 1) {
-        if (map[y + 1].items[x] == 9 and cur == 8) {
-            nines += 1;
-        } else if (map[y + 1].items[x] == cur + 1) {
-            nines += trailScore2(map, x, y + 1, cur + 1);
-        }
+        score(map, x, y + 1, cur, nines);
     }
-    return nines;
+}
+
+fn score(map: []const std.ArrayList(u8), x: usize, y: usize, cur: u8, nines: []?u32) void {
+    if (map[y].items[x] == 9 and cur == 8) {
+        const xy: u32 = @truncate(x * 100 | y);
+        for (nines) |*nine| {
+            if (nine.*) |n| {
+                if (n == xy) {
+                    return;
+                }
+            } else {
+                nine.* = xy;
+                return;
+            }
+        }
+    } else if (map[y].items[x] == cur + 1) {
+        trailScore(map, x, y, cur + 1, nines);
+    }
+}
+
+fn score2(map: []const std.ArrayList(u8), x: usize, y: usize, cur: u8, nines: *u32) void {
+    if (map[y].items[x] == cur + 1) {
+        if (map[y].items[x] == 9) {
+            nines.* += 1;
+        }
+        trailScore2(map, x, y, cur + 1, nines);
+        return;
+    }
+    return;
+}
+
+fn trailScore2(map: []const std.ArrayList(u8), x: usize, y: usize, cur: u8, nines: *u32) void {
+    if (x > 0) {
+        score2(map, x - 1, y, cur, nines);
+    }
+    if (x < map.len - 1) {
+        score2(map, x + 1, y, cur, nines);
+    }
+    if (y > 0) {
+        score2(map, x, y - 1, cur, nines);
+    }
+    if (y < map.len - 1) {
+        score2(map, x, y + 1, cur, nines);
+    }
 }
 
 fn part2(alloc: std.mem.Allocator, input: []const u8) !u32 {
@@ -178,7 +144,7 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !u32 {
     for (map.items, 0..) |row, y| {
         for (row.items, 0..) |item, x| {
             if (item == 0) {
-                sum += trailScore2(map.items, x, y, 0);
+                trailScore2(map.items, x, y, 0, &sum);
             }
         }
     }
