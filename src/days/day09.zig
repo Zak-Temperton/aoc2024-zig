@@ -62,12 +62,10 @@ fn part1(alloc: std.mem.Allocator, input: []const u8) !u64 {
 
 fn part2(alloc: std.mem.Allocator, input: []const u8) !u64 {
     const File = struct { avalable: bool, len: u8 };
-
     var files = std.ArrayList(File).init(alloc);
     defer files.deinit();
     var freespace = std.ArrayList(u8).init(alloc);
     defer freespace.deinit();
-
     for (input, 0..) |c, i| {
         if (c == '\r') break;
         if (i & 1 == 0) {
@@ -77,10 +75,8 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !u64 {
         }
     }
     var checksum: u64 = 0;
-
     var i: u32 = 0;
     var j: u32 = 0;
-
     while (i < files.items.len) : (i += 1) {
         if (files.items[i].avalable) {
             for (0..files.items[i].len) |_| {
@@ -90,9 +86,10 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !u64 {
         } else {
             j += files.items[i].len;
         }
+        if (i >= freespace.items.len) break;
         const free = &freespace.items[i];
         fill: while (free.* > 0) {
-            for (0..files.items.len - i) |idx| {
+            for (1..files.items.len - i) |idx| {
                 const file = &files.items[files.items.len - idx];
                 if (file.avalable and free.* >= file.len) {
                     for (0..file.len) |_| {
