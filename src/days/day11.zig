@@ -69,20 +69,18 @@ fn mapChildren(seen: *std.AutoHashMap(u64, []usize), num: u64, target: usize, lo
 fn part1(alloc: std.mem.Allocator, input: []const u8) !usize {
     var i: usize = 0;
 
-    var map = std.AutoHashMap(u64, []usize).init(alloc);
+    var seen = std.AutoHashMap(u64, []usize).init(alloc);
     defer {
-        var iter = map.valueIterator();
+        var iter = seen.valueIterator();
         while (iter.next()) |next| {
             alloc.free(next.*);
         }
-        map.deinit();
+        seen.deinit();
     }
     var sum: usize = 0;
 
     while (i < input.len - 1) : (i += 1) {
-
         sum += try mapChildren(&seen, readInt(u64, input, &i), 25, 25);
-
     }
 
     return sum;
