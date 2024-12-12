@@ -15,3 +15,4 @@ My solutions to Advent of Code 2024 in Zig
 | 09  | [Disk Fragmenter](https://adventofcode.com/2024/day/9)                          | [day09.zig](src/days/day09.zig) |
 | 10  | [Hoof It](https://adventofcode.com/2024/day/10)                                 | [day10.zig](src/days/day10.zig) |
 | 11  | [Plutonian Pebbles](https://adventofcode.com/2024/day/11)                       | [day11.zig](src/days/day11.zig) |
+| 12  | [Garden Groups](https://adventofcode.com/2024/day/12)                           | [day12.zig](src/days/day12.zig) |
