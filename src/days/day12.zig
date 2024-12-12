@@ -85,8 +85,80 @@ fn part1(alloc: std.mem.Allocator, input: []const u8) !u32 {
     return sum;
 }
 
+fn getCost2(input: []const u8, checked: []u256, char: u8, x: usize, y: usize, width: usize, area: *u32, sides: *u32) void {
+    if (checked[y] & (ONE << @truncate(x)) == 0) {
+        checked[y] |= ONE << @truncate(x);
+        area.* += 1;
+        if (x > 0) {
+            if (input[(x - 1) + y * (width + 2)] == char) {
+                getCost2(input, checked, char, x - 1, y, width, area, sides);
+            } else if (y == 0 or input[x + (y - 1) * (width + 2)] != char) {
+                sides.* += 1;
+            } else if (y > 0 and input[(x - 1) + (y - 1) * (width + 2)] == char) {
+                sides.* += 1;
+            }
+        } else if (y == 0 or input[x + (y - 1) * (width + 2)] != char) {
+            sides.* += 1;
+        }
+        if (x < width - 1) {
+            if (input[(x + 1) + y * (width + 2)] == char) {
+                getCost2(input, checked, char, x + 1, y, width, area, sides);
+            } else if (y == width - 1 or input[x + (y + 1) * (width + 2)] != char) {
+                sides.* += 1;
+            } else if (y < width - 1 and input[(x + 1) + (y + 1) * (width + 2)] == char) {
+                sides.* += 1;
+            }
+        } else if (y == width - 1 or input[x + (y + 1) * (width + 2)] != char) {
+            sides.* += 1;
+        }
+        if (y > 0) {
+            if (input[x + (y - 1) * (width + 2)] == char) {
+                getCost2(input, checked, char, x, y - 1, width, area, sides);
+            } else if (x == width - 1 or input[(x + 1) + y * (width + 2)] != char) {
+                sides.* += 1;
+            } else if (x < width - 1 and input[(x + 1) + (y - 1) * (width + 2)] == char) {
+                sides.* += 1;
+            }
+        } else if (x == width - 1 or input[(x + 1) + y * (width + 2)] != char) {
+            sides.* += 1;
+        }
+        if (y < width - 1) {
+            if (input[x + (y + 1) * (width + 2)] == char) {
+                getCost2(input, checked, char, x, y + 1, width, area, sides);
+            } else if (x == 0 or input[(x - 1) + y * (width + 2)] != char) {
+                sides.* += 1;
+            } else if (x > 0 and input[(x - 1) + (y + 1) * (width + 2)] == char) {
+                sides.* += 1;
+            }
+        } else if (x == 0 or input[(x - 1) + y * (width + 2)] != char) {
+            sides.* += 1;
+        }
+    }
+}
+
 fn part2(alloc: std.mem.Allocator, input: []const u8) !u32 {
-    _ = alloc; // autofix
-    _ = input; // autofix
-    return 0;
+    var width: usize = 0;
+    for (input, 0..) |c, i| {
+        if (c == '\r') {
+            width = i;
+            break;
+        }
+    }
+    const checked = try alloc.alloc(u256, width);
+    defer alloc.free(checked);
+    @memset(checked, 0);
+    var sum: u32 = 0;
+
+    for (0..width) |x| {
+        for (0..width) |y| {
+            if (checked[y] & (ONE << @truncate(x)) == 0) {
+                var sides: u32 = 0;
+                var area: u32 = 0;
+                getCost2(input, checked, input[x + y * (width + 2)], x, y, width, &area, &sides);
+                sum += area * sides;
+            }
+        }
+    }
+
+    return sum;
 }
