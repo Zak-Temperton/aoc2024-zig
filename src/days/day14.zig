@@ -108,15 +108,17 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !u32 {
             image[final_y] |= @as(u128, 1) << @truncate(final_x);
         }
         for (image) |line| {
-            var continuity: u32 = 0;
-            for (0..width) |c| {
-                if ((line >> @truncate(c)) & 1 == 1) {
-                    continuity += 1;
-                    if (continuity == 10) {
-                        return @truncate(s);
+            if (@popCount(line) >= 33) {
+                var continuity: u32 = 0;
+                for (0..width) |c| {
+                    if ((line >> @truncate(c)) & 1 == 1) {
+                        continuity += 1;
+                        if (continuity == 10) {
+                            return @truncate(s);
+                        }
+                    } else {
+                        continuity = 0;
                     }
-                } else {
-                    continuity = 0;
                 }
             }
         }
