@@ -19,3 +19,4 @@ My solutions to Advent of Code 2024 in Zig
 | 13  | [Claw Contraption](https://adventofcode.com/2024/day/13)                        | [day13.zig](src/days/day13.zig) |
 | 14  | [Restroom Redoubt](https://adventofcode.com/2024/day/14)                        | [day14.zig](src/days/day14.zig) |
 | 15  | [Warehouse Woes](https://adventofcode.com/2024/day/15)                          | [day15.zig](src/days/day15.zig) |
+| 16  | [Reindeer Maze](https://adventofcode.com/2024/day/16)                           | [day16.zig](src/days/day16.zig) |
