@@ -15,7 +15,7 @@ pub const day12 = @import("days/day12.zig");
 pub const day13 = @import("days/day13.zig");
 pub const day14 = @import("days/day14.zig");
 pub const day15 = @import("days/day15.zig");
-//pub const day16 = @import("days/day16.zig");
+pub const day16 = @import("days/day16.zig");
 //pub const day17 = @import("days/day17.zig");
 //pub const day18 = @import("days/day18.zig");
 //pub const day19 = @import("days/day19.zig");
@@ -102,7 +102,7 @@ pub fn selectDay(alloc: std.mem.Allocator, stdout: anytype, input_day: []const u
             .day13 => try day13.run(alloc, stdout),
             .day14 => try day14.run(alloc, stdout),
             .day15 => try day15.run(alloc, stdout),
-            //.day16 => try day16.run(alloc, stdout),
+            .day16 => try day16.run(alloc, stdout),
             //.day17 => try day17.run(alloc, stdout),
             //.day18 => try day18.run(alloc, stdout),
             //.day19 => try day19.run(alloc, stdout),
@@ -128,7 +128,7 @@ pub fn selectDay(alloc: std.mem.Allocator, stdout: anytype, input_day: []const u
                 try day13.run(alloc, stdout);
                 try day14.run(alloc, stdout);
                 try day15.run(alloc, stdout);
-                //try day16.run(alloc, stdout);
+                try day16.run(alloc, stdout);
                 //try day17.run(alloc, stdout);
                 //try day18.run(alloc, stdout);
                 //try day19.run(alloc, stdout);
