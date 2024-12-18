@@ -21,3 +21,4 @@ My solutions to Advent of Code 2024 in Zig
 | 15  | [Warehouse Woes](https://adventofcode.com/2024/day/15)                          | [day15.zig](src/days/day15.zig) |
 | 16  | [Reindeer Maze](https://adventofcode.com/2024/day/16)                           | [day16.zig](src/days/day16.zig) |
 | 17  | [Chronospatial Computer](https://adventofcode.com/2024/day/17)                  | [day17.zig](src/days/day17.zig) |
+| 18  | [RAM Run](https://adventofcode.com/2024/day/18)                                 | [day18.zig](src/days/day18.zig) |
