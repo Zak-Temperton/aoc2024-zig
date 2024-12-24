@@ -25,3 +25,4 @@ My solutions to Advent of Code 2024 in Zig
 | 19  | [Linen Layout](https://adventofcode.com/2024/day/19)                            | [day19.zig](src/days/day19.zig) |
 | 20  | [Race Condition](https://adventofcode.com/2024/day/20)                          | [day20.zig](src/days/day20.zig) |
 | 21  | [Keypad Conundrum](https://adventofcode.com/2024/day/21)                        | [day21.zig](src/days/day21.zig) |
+| 22  | [Monkey Market](https://adventofcode.com/2024/day/22)                           | [day22.zig](src/days/day22.zig) |
