@@ -45,7 +45,7 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !u64 {
     var i: usize = 0;
     var sums = std.AutoHashMap(u20, u64).init(alloc);
     defer sums.deinit();
-    var seen = std.ArrayList(u20).init(alloc);
+    var seen = std.AutoHashMap(u20, void).init(alloc);
     defer seen.deinit();
     while (i < input.len) {
         seen.clearRetainingCapacity();
@@ -59,8 +59,8 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !u64 {
             const rem = @as(u8, @intCast(num % 10));
             const change = rem + 10 - last;
             key = key << 5 | change;
-            if (j > 3 and !std.mem.containsAtLeast(u20, seen.items, 1, &.{key})) {
-                try seen.append(key);
+            if (j > 3 and !seen.contains(key)) {
+                try seen.put(key, {});
                 const result = try sums.getOrPut(key);
                 if (result.found_existing) {
                     result.value_ptr.* += rem;
