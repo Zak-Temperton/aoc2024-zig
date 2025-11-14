@@ -1,8 +1,8 @@
 const std = @import("std");
 
-pub fn run(alloc: std.mem.Allocator, stdout: anytype) !void {
+pub fn run(alloc: std.mem.Allocator, stdout: *std.io.Writer) !void {
     const file = try std.fs.cwd().openFile("src/data/day17.txt", .{ .mode = .read_only });
-    const buffer = try file.reader().readAllAlloc(alloc, std.math.maxInt(u32));
+    const buffer = try file.readToEndAlloc(alloc, std.math.maxInt(u32));
     defer alloc.free(buffer);
 
     var timer = try std.time.Timer.start();
@@ -10,7 +10,6 @@ pub fn run(alloc: std.mem.Allocator, stdout: anytype) !void {
     defer alloc.free(p1);
     const p1_time = timer.lap();
     const p2 = try part2(alloc, buffer);
-    //const p2 = part2b();
     const p2_time = timer.read();
     try stdout.print("Day17:\n  part1: {s} {d}ns\n  part2: {d} {d}ns\n", .{ p1, p1_time, p2, p2_time });
 }
@@ -34,11 +33,11 @@ fn part1(alloc: std.mem.Allocator, input: []const u8) ![]u8 {
     i += 14;
     var reg_c = readInt(u32, input, &i);
     i += 13;
-    var program = std.ArrayList(u32).init(alloc);
-    defer program.deinit();
-    var output = std.ArrayList(u8).init(alloc);
+    var program = try std.ArrayList(u32).initCapacity(alloc, (input.len - i) / 3 + 1);
+    defer program.deinit(alloc);
+    var output = try std.ArrayList(u8).initCapacity(alloc, 0);
     while (i < input.len - 1) : (i += 2) {
-        try program.append(input[i] - '0');
+        try program.append(alloc, input[i] - '0');
     }
     i = 0;
     while (i < program.items.len) {
@@ -77,8 +76,8 @@ fn part1(alloc: std.mem.Allocator, input: []const u8) ![]u8 {
                 i += 2;
             },
             5 => { //out
-                try output.append(@truncate('0' + (combo & 0b111)));
-                try output.append(',');
+                try output.append(alloc, @truncate('0' + (combo & 0b111)));
+                try output.append(alloc, ',');
                 i += 2;
             },
             6 => { //bdv
@@ -94,7 +93,7 @@ fn part1(alloc: std.mem.Allocator, input: []const u8) ![]u8 {
     }
     _ = output.pop();
 
-    return output.toOwnedSlice();
+    return output.toOwnedSlice(alloc);
 }
 
 //24 bst b = a & 0b111
@@ -145,10 +144,10 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !u64 {
     var reg_c = readInt(u64, input, &i);
     i += 13;
     reg_a = 0;
-    var program = std.ArrayList(u32).init(alloc);
-    defer program.deinit();
+    var program = try std.ArrayList(u32).initCapacity(alloc, (input.len - i) / 3 + 1);
+    defer program.deinit(alloc);
     while (i < input.len - 1) : (i += 2) {
-        try program.append(input[i] - '0');
+        try program.append(alloc, input[i] - '0');
     }
     var start: u64 = 0;
     var j: usize = 0;

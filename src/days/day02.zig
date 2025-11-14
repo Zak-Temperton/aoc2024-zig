@@ -1,8 +1,8 @@
 const std = @import("std");
 
-pub fn run(alloc: std.mem.Allocator, stdout: anytype) !void {
+pub fn run(alloc: std.mem.Allocator, stdout: *std.io.Writer) !void {
     const file = try std.fs.cwd().openFile("src/data/day02.txt", .{ .mode = .read_only });
-    const buffer = try file.reader().readAllAlloc(alloc, std.math.maxInt(u32));
+    const buffer = try file.readToEndAlloc(alloc, std.math.maxInt(u32));
     defer alloc.free(buffer);
 
     var timer = try std.time.Timer.start();
@@ -69,7 +69,7 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !u32 {
     var count: u32 = 0;
     var i: usize = 0;
     var report = try std.ArrayList(u8).initCapacity(alloc, 8);
-    defer report.deinit();
+    defer report.deinit(alloc);
     while (i < input.len) {
         report.appendAssumeCapacity(readInt(u8, input, &i));
         while (i < input.len and input[i] == ' ') {

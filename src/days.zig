@@ -84,7 +84,7 @@ pub const days = std.StaticStringMap(Day).initComptime(.{
     .{ "all", .all },
 });
 
-pub fn selectDay(alloc: std.mem.Allocator, stdout: anytype, input_day: []const u8) !void {
+pub fn selectDay(alloc: std.mem.Allocator, stdout: *std.io.Writer, input_day: []const u8) !void {
     if (days.get(input_day)) |day_enum| {
         switch (day_enum) {
             .day01 => try day01.run(alloc, stdout),

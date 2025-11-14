@@ -3,9 +3,9 @@ const std = @import("std");
 const ONE: u128 = 1;
 const THREE: u128 = 0b11;
 
-pub fn run(alloc: std.mem.Allocator, stdout: anytype) !void {
+pub fn run(alloc: std.mem.Allocator, stdout: *std.io.Writer) !void {
     const file = try std.fs.cwd().openFile("src/data/day15.txt", .{ .mode = .read_only });
-    const buffer = try file.reader().readAllAlloc(alloc, std.math.maxInt(u32));
+    const buffer = try file.readToEndAlloc(alloc, std.math.maxInt(u32));
     defer alloc.free(buffer);
 
     var timer = try std.time.Timer.start();

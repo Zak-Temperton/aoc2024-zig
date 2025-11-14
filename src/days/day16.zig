@@ -2,9 +2,9 @@ const std = @import("std");
 
 const ONE: u256 = 1;
 
-pub fn run(alloc: std.mem.Allocator, stdout: anytype) !void {
+pub fn run(alloc: std.mem.Allocator, stdout: *std.io.Writer) !void {
     const file = try std.fs.cwd().openFile("src/data/day16.txt", .{ .mode = .read_only });
-    const buffer = try file.reader().readAllAlloc(alloc, std.math.maxInt(u32));
+    const buffer = try file.readToEndAlloc(alloc, std.math.maxInt(u32));
     defer alloc.free(buffer);
 
     var timer = try std.time.Timer.start();
@@ -23,11 +23,11 @@ const Walker = struct {
 };
 
 fn flood(alloc: std.mem.Allocator, map: []u256, scores: [][]u32) !u32 {
-    var walkers = std.ArrayList(Walker).init(alloc);
-    defer walkers.deinit();
-    try walkers.append(Walker{ .x = 0, .y = @truncate(map.len - 1), .dir = 0, .score = 0 });
-    var nextWalkers = std.ArrayList(Walker).init(alloc);
-    defer nextWalkers.deinit();
+    var walkers = try std.ArrayList(Walker).initCapacity(alloc, 1);
+    defer walkers.deinit(alloc);
+    walkers.appendAssumeCapacity(Walker{ .x = 0, .y = @truncate(map.len - 1), .dir = 0, .score = 0 });
+    var nextWalkers = try std.ArrayList(Walker).initCapacity(alloc, 0);
+    defer nextWalkers.deinit(alloc);
 
     while (walkers.items.len > 0) {
         for (walkers.items) |walker| {
@@ -39,21 +39,21 @@ fn flood(alloc: std.mem.Allocator, map: []u256, scores: [][]u32) !u32 {
                         if (walker.x < map.len - 1) {
                             newWalker.x += 1;
                             newWalker.score += 1;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                         if (walker.y < map.len - 1) {
                             newWalker = walker;
                             newWalker.dir = 1;
                             newWalker.y += 1;
                             newWalker.score += 1001;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                         if (walker.y > 0) {
                             newWalker = walker;
                             newWalker.dir = 3;
                             newWalker.y -= 1;
                             newWalker.score += 1001;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                     },
                     1 => {
@@ -62,20 +62,20 @@ fn flood(alloc: std.mem.Allocator, map: []u256, scores: [][]u32) !u32 {
                             newWalker.dir = 0;
                             newWalker.x += 1;
                             newWalker.score += 1001;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                         if (walker.y < map.len - 1) {
                             newWalker = walker;
                             newWalker.y += 1;
                             newWalker.score += 1;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                         if (walker.x > 0) {
                             newWalker = walker;
                             newWalker.dir = 2;
                             newWalker.x -= 1;
                             newWalker.score += 1001;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                     },
                     2 => {
@@ -83,21 +83,21 @@ fn flood(alloc: std.mem.Allocator, map: []u256, scores: [][]u32) !u32 {
                         if (walker.x > 0) {
                             newWalker.x -= 1;
                             newWalker.score += 1;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                         if (walker.y < map.len - 1) {
                             newWalker = walker;
                             newWalker.dir = 1;
                             newWalker.y += 1;
                             newWalker.score += 1001;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                         if (walker.y > 0) {
                             newWalker = walker;
                             newWalker.dir = 3;
                             newWalker.y -= 1;
                             newWalker.score += 1001;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                     },
                     3 => {
@@ -106,20 +106,20 @@ fn flood(alloc: std.mem.Allocator, map: []u256, scores: [][]u32) !u32 {
                             newWalker.dir = 0;
                             newWalker.x += 1;
                             newWalker.score += 1001;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                         if (walker.y > 0) {
                             newWalker = walker;
                             newWalker.y -= 1;
                             newWalker.score += 1;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                         if (walker.x > 0) {
                             newWalker = walker;
                             newWalker.dir = 2;
                             newWalker.x -= 1;
                             newWalker.score += 1001;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                     },
                 }
@@ -205,12 +205,12 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !usize {
     defer alloc.free(seats);
     @memset(seats, 0);
 
-    var walkers = std.ArrayList(Walker).init(alloc);
-    defer walkers.deinit();
-    try walkers.append(Walker{ .x = @truncate(map.len - 1), .y = 1, .dir = 1, .score = start - 1 });
-    try walkers.append(Walker{ .x = @truncate(map.len - 2), .y = 0, .dir = 2, .score = start - 1 });
-    var nextWalkers = std.ArrayList(Walker).init(alloc);
-    defer nextWalkers.deinit();
+    var walkers = try std.ArrayList(Walker).initCapacity(alloc, 2);
+    defer walkers.deinit(alloc);
+    walkers.appendAssumeCapacity(Walker{ .x = @truncate(map.len - 1), .y = 1, .dir = 1, .score = start - 1 });
+    walkers.appendAssumeCapacity(Walker{ .x = @truncate(map.len - 2), .y = 0, .dir = 2, .score = start - 1 });
+    var nextWalkers = try std.ArrayList(Walker).initCapacity(alloc, 0);
+    defer nextWalkers.deinit(alloc);
 
     var sum: u32 = 0;
     while (walkers.items.len > 0) {
@@ -224,29 +224,29 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !usize {
                         if (walker.x < map.len - 1) {
                             newWalker.x += 1;
                             newWalker.score -|= 1;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                             newWalker.score -|= 1000;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                             newWalker.score += 2000;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                         if (walker.y < map.len - 1) {
                             newWalker = walker;
                             newWalker.dir = 1;
                             newWalker.y += 1;
                             newWalker.score -|= 1;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                             newWalker.score -|= 1000;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                         if (walker.y > 0) {
                             newWalker = walker;
                             newWalker.dir = 3;
                             newWalker.y -= 1;
                             newWalker.score -|= 1;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                             newWalker.score -|= 1000;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                     },
                     1 => {
@@ -255,28 +255,28 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !usize {
                             newWalker.dir = 0;
                             newWalker.x += 1;
                             newWalker.score -|= 1;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                             newWalker.score -|= 1000;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                         if (walker.y < map.len - 1) {
                             newWalker = walker;
                             newWalker.y += 1;
                             newWalker.score -|= 1;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                             newWalker.score -|= 1000;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                             newWalker.score += 2000;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                         if (walker.x > 0) {
                             newWalker = walker;
                             newWalker.dir = 2;
                             newWalker.x -= 1;
                             newWalker.score -|= 1;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                             newWalker.score -|= 1000;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                     },
                     2 => {
@@ -284,29 +284,29 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !usize {
                         if (walker.x > 0) {
                             newWalker.x -= 1;
                             newWalker.score -|= 1;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                             newWalker.score -|= 1000;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                             newWalker.score += 2000;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                         if (walker.y < map.len - 1) {
                             newWalker = walker;
                             newWalker.dir = 1;
                             newWalker.y += 1;
                             newWalker.score -|= 1;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                             newWalker.score -|= 1000;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                         if (walker.y > 0) {
                             newWalker = walker;
                             newWalker.dir = 3;
                             newWalker.y -= 1;
                             newWalker.score -|= 1;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                             newWalker.score -|= 1000;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                     },
                     3 => {
@@ -315,28 +315,28 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !usize {
                             newWalker.dir = 0;
                             newWalker.x += 1;
                             newWalker.score -|= 1;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                             newWalker.score -|= 1000;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                         if (walker.y > 0) {
                             newWalker = walker;
                             newWalker.y -= 1;
                             newWalker.score -|= 1;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                             newWalker.score -|= 1000;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                         if (walker.x > 0) {
                             newWalker = walker;
                             newWalker.dir = 2;
                             newWalker.x -= 1;
                             newWalker.score -|= 1;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                             newWalker.score -|= 1000;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                             newWalker.score += 2000;
-                            try nextWalkers.append(newWalker);
+                            try nextWalkers.append(alloc, newWalker);
                         }
                     },
                 }

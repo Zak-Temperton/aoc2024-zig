@@ -1,8 +1,8 @@
 const std = @import("std");
 
-pub fn run(alloc: std.mem.Allocator, stdout: anytype) !void {
+pub fn run(alloc: std.mem.Allocator, stdout: *std.io.Writer) !void {
     const file = try std.fs.cwd().openFile("src/data/day19.txt", .{ .mode = .read_only });
-    const buffer = try file.reader().readAllAlloc(alloc, std.math.maxInt(u32));
+    const buffer = try file.readToEndAlloc(alloc, std.math.maxInt(u32));
     defer alloc.free(buffer);
 
     var timer = try std.time.Timer.start();
@@ -47,16 +47,16 @@ fn isValid(seen: *std.StringHashMap(bool), w_towels: [][]const u8, u_towels: [][
 
 fn part1(alloc: std.mem.Allocator, input: []const u8) !u32 {
     var i: usize = 0;
-    var w_towels = std.ArrayList([]const u8).init(alloc);
-    var u_towels = std.ArrayList([]const u8).init(alloc);
-    var b_towels = std.ArrayList([]const u8).init(alloc);
-    var r_towels = std.ArrayList([]const u8).init(alloc);
-    var g_towels = std.ArrayList([]const u8).init(alloc);
-    defer w_towels.deinit();
-    defer u_towels.deinit();
-    defer b_towels.deinit();
-    defer r_towels.deinit();
-    defer g_towels.deinit();
+    var w_towels = try std.ArrayList([]const u8).initCapacity(alloc, 0);
+    var u_towels = try std.ArrayList([]const u8).initCapacity(alloc, 0);
+    var b_towels = try std.ArrayList([]const u8).initCapacity(alloc, 0);
+    var r_towels = try std.ArrayList([]const u8).initCapacity(alloc, 0);
+    var g_towels = try std.ArrayList([]const u8).initCapacity(alloc, 0);
+    defer w_towels.deinit(alloc);
+    defer u_towels.deinit(alloc);
+    defer b_towels.deinit(alloc);
+    defer r_towels.deinit(alloc);
+    defer g_towels.deinit(alloc);
     var seen = std.StringHashMap(bool).init(alloc);
     defer seen.deinit();
     while (i < input.len) {
@@ -66,11 +66,11 @@ fn part1(alloc: std.mem.Allocator, input: []const u8) !u32 {
         }
 
         switch (input[start]) {
-            'w' => try w_towels.append(input[start..i]),
-            'u' => try u_towels.append(input[start..i]),
-            'b' => try b_towels.append(input[start..i]),
-            'r' => try r_towels.append(input[start..i]),
-            'g' => try g_towels.append(input[start..i]),
+            'w' => try w_towels.append(alloc, input[start..i]),
+            'u' => try u_towels.append(alloc, input[start..i]),
+            'b' => try b_towels.append(alloc, input[start..i]),
+            'r' => try r_towels.append(alloc, input[start..i]),
+            'g' => try g_towels.append(alloc, input[start..i]),
             else => std.debug.print("{c}", .{input[start]}),
         }
         try seen.put(input[start..i], true);
@@ -130,16 +130,16 @@ fn isValid2(seen: *std.StringHashMap(u64), w_towels: [][]const u8, u_towels: [][
 }
 fn part2(alloc: std.mem.Allocator, input: []const u8) !u64 {
     var i: usize = 0;
-    var w_towels = std.ArrayList([]const u8).init(alloc);
-    var u_towels = std.ArrayList([]const u8).init(alloc);
-    var b_towels = std.ArrayList([]const u8).init(alloc);
-    var r_towels = std.ArrayList([]const u8).init(alloc);
-    var g_towels = std.ArrayList([]const u8).init(alloc);
-    defer w_towels.deinit();
-    defer u_towels.deinit();
-    defer b_towels.deinit();
-    defer r_towels.deinit();
-    defer g_towels.deinit();
+    var w_towels = try std.ArrayList([]const u8).initCapacity(alloc, 0);
+    var u_towels = try std.ArrayList([]const u8).initCapacity(alloc, 0);
+    var b_towels = try std.ArrayList([]const u8).initCapacity(alloc, 0);
+    var r_towels = try std.ArrayList([]const u8).initCapacity(alloc, 0);
+    var g_towels = try std.ArrayList([]const u8).initCapacity(alloc, 0);
+    defer w_towels.deinit(alloc);
+    defer u_towels.deinit(alloc);
+    defer b_towels.deinit(alloc);
+    defer r_towels.deinit(alloc);
+    defer g_towels.deinit(alloc);
     var seen = std.StringHashMap(u64).init(alloc);
     defer seen.deinit();
     while (i < input.len) {
@@ -149,11 +149,11 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !u64 {
         }
 
         switch (input[start]) {
-            'w' => try w_towels.append(input[start..i]),
-            'u' => try u_towels.append(input[start..i]),
-            'b' => try b_towels.append(input[start..i]),
-            'r' => try r_towels.append(input[start..i]),
-            'g' => try g_towels.append(input[start..i]),
+            'w' => try w_towels.append(alloc, input[start..i]),
+            'u' => try u_towels.append(alloc, input[start..i]),
+            'b' => try b_towels.append(alloc, input[start..i]),
+            'r' => try r_towels.append(alloc, input[start..i]),
+            'g' => try g_towels.append(alloc, input[start..i]),
             else => std.debug.print("{c}", .{input[start]}),
         }
         if (input[i] == '\r') {

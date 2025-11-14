@@ -1,17 +1,15 @@
 const std = @import("std");
 
-pub fn run(alloc: std.mem.Allocator, stdout: anytype) !void {
+pub fn run(alloc: std.mem.Allocator, stdout: *std.io.Writer) !void {
     const file = try std.fs.cwd().openFile("src/data/day06.txt", .{ .mode = .read_only });
-    const buffer = try file.reader().readAllAlloc(alloc, std.math.maxInt(u32));
+    const buffer = try file.readToEndAlloc(alloc, std.math.maxInt(u32));
     defer alloc.free(buffer);
 
     var timer = try std.time.Timer.start();
     const p1 = try part1(alloc, buffer);
     const p1_time = timer.lap();
     const p2 = try part2(alloc, buffer);
-    const p2_time = timer.lap();
-    //   const p2 = try part2(alloc, buffer);
-    //  const p2_time = timer.read();
+    const p2_time = timer.read();
     try stdout.print("Day06:\n  part1: {d} {d}ns\n  part2: {d} {d}ns\n", .{ p1, p1_time, p2, p2_time });
 }
 
@@ -82,9 +80,9 @@ const Guard = struct {
 
     fn testLoop(self: Guard, alloc: std.mem.Allocator, map: []const u256, been: []u256) !bool {
         var tmp_guard = self;
-        var checks = std.ArrayList(Guard).init(alloc);
-        defer checks.deinit();
-        try checks.append(tmp_guard);
+        var checks = try std.ArrayList(Guard).initCapacity(alloc, 2);
+        defer checks.deinit(alloc);
+        checks.appendAssumeCapacity(tmp_guard);
         const tmp_been: []u256 = try alloc.alloc(u256, been.len);
         defer alloc.free(tmp_been);
         @memcpy(tmp_been, been);
@@ -99,7 +97,7 @@ const Guard = struct {
             } else {
                 dir = tmp_guard.dir;
             }
-            try checks.append(tmp_guard);
+            try checks.append(alloc, tmp_guard);
         }
         return false;
     }
@@ -178,9 +176,9 @@ fn part1(alloc: std.mem.Allocator, input: []const u8) !u32 {
     var guard: Guard = undefined;
     var x: u8 = 0;
     var y: u8 = 0;
-    var map = std.ArrayList(u256).init(alloc);
-    defer map.deinit();
-    try map.append(0);
+    var map = try std.ArrayList(u256).initCapacity(alloc, 1);
+    defer map.deinit(alloc);
+    map.appendAssumeCapacity(0);
     for (input) |value| {
         switch (value) {
             '.' => x += 1,
@@ -191,7 +189,7 @@ fn part1(alloc: std.mem.Allocator, input: []const u8) !u32 {
             '\n' => {
                 x = 0;
                 y += 1;
-                try map.append(0);
+                try map.append(alloc, 0);
             },
             '^' => {
                 guard = Guard{ .x = x, .y = y, .dir = .up };
@@ -217,9 +215,9 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !u32 {
     var guard: Guard = undefined;
     var x: u8 = 0;
     var y: u8 = 0;
-    var map = std.ArrayList(u256).init(alloc);
-    defer map.deinit();
-    try map.append(0);
+    var map = try std.ArrayList(u256).initCapacity(alloc, 1);
+    defer map.deinit(alloc);
+    map.appendAssumeCapacity(0);
     for (input) |value| {
         switch (value) {
             '.' => x += 1,
@@ -230,7 +228,7 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !u32 {
             '\n' => {
                 x = 0;
                 y += 1;
-                try map.append(0);
+                try map.append(alloc, 0);
             },
             '^' => {
                 guard = Guard{ .x = x, .y = y, .dir = .up };

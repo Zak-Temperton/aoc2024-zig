@@ -2,9 +2,9 @@ const std = @import("std");
 
 const ONE: u71 = 1;
 
-pub fn run(alloc: std.mem.Allocator, stdout: anytype) !void {
+pub fn run(alloc: std.mem.Allocator, stdout: *std.io.Writer) !void {
     const file = try std.fs.cwd().openFile("src/data/day18.txt", .{ .mode = .read_only });
-    const buffer = try file.reader().readAllAlloc(alloc, std.math.maxInt(u32));
+    const buffer = try file.readToEndAlloc(alloc, std.math.maxInt(u32));
     defer alloc.free(buffer);
 
     var timer = try std.time.Timer.start();
@@ -44,11 +44,11 @@ fn traverse(alloc: std.mem.Allocator, map: []u71) !u32 {
         x: u7,
         y: u7,
     };
-    var states = std.ArrayList(Point).init(alloc);
-    defer states.deinit();
-    var new_states = std.ArrayList(Point).init(alloc);
-    defer new_states.deinit();
-    try states.append(Point{ .x = 0, .y = 0 });
+    var states = try std.ArrayList(Point).initCapacity(alloc, 1);
+    defer states.deinit(alloc);
+    var new_states = try std.ArrayList(Point).initCapacity(alloc, 0);
+    defer new_states.deinit(alloc);
+    states.appendAssumeCapacity(Point{ .x = 0, .y = 0 });
     map[0] |= 1;
     var steps: u32 = 0;
     while (states.items.len > 0) : (steps += 1) {
@@ -58,19 +58,19 @@ fn traverse(alloc: std.mem.Allocator, map: []u71) !u32 {
             }
             if (state.x > 0 and map[state.y] >> (state.x - 1) & 1 == 0) {
                 map[state.y] |= ONE << (state.x - 1);
-                try new_states.append(Point{ .x = state.x - 1, .y = state.y });
+                try new_states.append(alloc, Point{ .x = state.x - 1, .y = state.y });
             }
             if (state.x < 70 and map[state.y] >> (state.x + 1) & 1 == 0) {
                 map[state.y] |= ONE << (state.x + 1);
-                try new_states.append(Point{ .x = state.x + 1, .y = state.y });
+                try new_states.append(alloc, Point{ .x = state.x + 1, .y = state.y });
             }
             if (state.y > 0 and map[state.y - 1] >> state.x & 1 == 0) {
                 map[state.y - 1] |= ONE << state.x;
-                try new_states.append(Point{ .x = state.x, .y = state.y - 1 });
+                try new_states.append(alloc, Point{ .x = state.x, .y = state.y - 1 });
             }
             if (state.y < 70 and map[state.y + 1] >> state.x & 1 == 0) {
                 map[state.y + 1] |= ONE << state.x;
-                try new_states.append(Point{ .x = state.x, .y = state.y + 1 });
+                try new_states.append(alloc, Point{ .x = state.x, .y = state.y + 1 });
             }
         }
         const tmp = states;

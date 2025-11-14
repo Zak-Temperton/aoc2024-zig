@@ -1,8 +1,8 @@
 const std = @import("std");
 
-pub fn run(alloc: std.mem.Allocator, stdout: anytype) !void {
+pub fn run(alloc: std.mem.Allocator, stdout: *std.io.Writer) !void {
     const file = try std.fs.cwd().openFile("src/data/day07.txt", .{ .mode = .read_only });
-    const buffer = try file.reader().readAllAlloc(alloc, std.math.maxInt(u32));
+    const buffer = try file.readToEndAlloc(alloc, std.math.maxInt(u32));
     defer alloc.free(buffer);
 
     var timer = try std.time.Timer.start();
@@ -45,8 +45,8 @@ fn possible(nums: []u64, target: u64) bool {
 
 fn part1(alloc: std.mem.Allocator, input: []const u8) !u64 {
     var i: usize = 0;
-    var nums = std.ArrayList(u64).init(alloc);
-    defer nums.deinit();
+    var nums = try std.ArrayList(u64).initCapacity(alloc, 0);
+    defer nums.deinit(alloc);
     var sum: u64 = 0;
     while (i < input.len) {
         nums.clearRetainingCapacity();
@@ -54,7 +54,7 @@ fn part1(alloc: std.mem.Allocator, input: []const u8) !u64 {
         i += 1;
         while (i < input.len and input[i] == ' ') {
             i += 1;
-            try nums.append(readInt(u64, input, &i));
+            try nums.append(alloc, readInt(u64, input, &i));
         }
         if (possible(nums.items, target)) {
             sum += target;
@@ -99,8 +99,8 @@ fn possible2(nums: []u64, target: u64) bool {
 
 fn part2(alloc: std.mem.Allocator, input: []const u8) !u64 {
     var i: usize = 0;
-    var nums = std.ArrayList(u64).init(alloc);
-    defer nums.deinit();
+    var nums = try std.ArrayList(u64).initCapacity(alloc, 0);
+    defer nums.deinit(alloc);
     var sum: u64 = 0;
     while (i < input.len) {
         nums.clearRetainingCapacity();
@@ -108,7 +108,7 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !u64 {
         i += 1;
         while (i < input.len and input[i] == ' ') {
             i += 1;
-            try nums.append(readInt(u64, input, &i));
+            try nums.append(alloc, readInt(u64, input, &i));
         }
         if (possible2(nums.items, target)) {
             sum += target;

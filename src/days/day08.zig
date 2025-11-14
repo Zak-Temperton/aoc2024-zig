@@ -1,8 +1,8 @@
 const std = @import("std");
 
-pub fn run(alloc: std.mem.Allocator, stdout: anytype) !void {
+pub fn run(alloc: std.mem.Allocator, stdout: *std.io.Writer) !void {
     const file = try std.fs.cwd().openFile("src/data/day08.txt", .{ .mode = .read_only });
-    const buffer = try file.reader().readAllAlloc(alloc, std.math.maxInt(u32));
+    const buffer = try file.readToEndAlloc(alloc, std.math.maxInt(u32));
     defer alloc.free(buffer);
 
     var timer = try std.time.Timer.start();
@@ -48,10 +48,10 @@ fn findAntennas(alloc: std.mem.Allocator, input: []const u8, antennas: []?std.Ar
             else => {
                 const index = getIndex(c);
                 if (antennas[index]) |*frequency| {
-                    try frequency.append(.{ .x = x, .y = y });
+                    try frequency.append(alloc, .{ .x = x, .y = y });
                 } else {
-                    antennas[index] = std.ArrayList(Antenna).init(alloc);
-                    try antennas[index].?.append(.{ .x = x, .y = y });
+                    antennas[index] = try std.ArrayList(Antenna).initCapacity(alloc, 1);
+                    antennas[index].?.appendAssumeCapacity(.{ .x = x, .y = y });
                 }
                 x += 1;
             },
@@ -91,12 +91,12 @@ fn findAntinodes(antennas: []?std.ArrayList(Antenna), antinodes: []u64, size: u3
 }
 
 fn part1(alloc: std.mem.Allocator, input: []const u8) !u32 {
-    const antennas = try alloc.alloc(?std.ArrayList(Antenna), 10 + 26 * 2);
+    const antennas: []?std.ArrayList(Antenna) = try alloc.alloc(?std.ArrayList(Antenna), 10 + 26 * 2);
     @memset(antennas, null);
     defer {
-        for (antennas) |antenna| {
-            if (antenna) |frequency| {
-                frequency.deinit();
+        for (0..antennas.len) |i| {
+            if (antennas[i]) |*frequency| {
+                frequency.deinit(alloc);
             }
         }
         alloc.free(antennas);
@@ -163,9 +163,9 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !u32 {
     const antennas = try alloc.alloc(?std.ArrayList(Antenna), 10 + 26 * 2);
     @memset(antennas, null);
     defer {
-        for (antennas) |antenna| {
-            if (antenna) |frequency| {
-                frequency.deinit();
+        for (0..antennas.len) |i| {
+            if (antennas[i]) |*frequency| {
+                frequency.deinit(alloc);
             }
         }
         alloc.free(antennas);

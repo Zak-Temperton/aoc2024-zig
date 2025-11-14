@@ -1,8 +1,8 @@
 const std = @import("std");
 
-pub fn run(alloc: std.mem.Allocator, stdout: anytype) !void {
+pub fn run(alloc: std.mem.Allocator, stdout: *std.io.Writer) !void {
     const file = try std.fs.cwd().openFile("src/data/day05.txt", .{ .mode = .read_only });
-    const buffer = try file.reader().readAllAlloc(alloc, std.math.maxInt(u32));
+    const buffer = try file.readToEndAlloc(alloc, std.math.maxInt(u32));
     defer alloc.free(buffer);
 
     var timer = try std.time.Timer.start();
@@ -29,7 +29,7 @@ fn part1(alloc: std.mem.Allocator, input: []const u8) !u32 {
     defer {
         var iter = rules.valueIterator();
         while (iter.next()) |next| {
-            next.deinit();
+            next.deinit(alloc);
         }
         rules.deinit();
     }
@@ -42,18 +42,18 @@ fn part1(alloc: std.mem.Allocator, input: []const u8) !u32 {
         i += 2;
         const res = try rules.getOrPut(right);
         if (res.found_existing) {
-            try res.value_ptr.append(left);
+            try res.value_ptr.append(alloc, left);
         } else {
-            res.value_ptr.* = std.ArrayList(u8).init(alloc);
-            try res.value_ptr.append(left);
+            res.value_ptr.* = try std.ArrayList(u8).initCapacity(alloc, 1);
+            res.value_ptr.appendAssumeCapacity(left);
         }
     }
     i += 2;
     var sum: u32 = 0;
-    var line = std.ArrayList(u8).init(alloc);
-    defer line.deinit();
-    var disallowed = std.ArrayList(u8).init(alloc);
-    defer disallowed.deinit();
+    var line = try std.ArrayList(u8).initCapacity(alloc, 0);
+    defer line.deinit(alloc);
+    var disallowed = try std.ArrayList(u8).initCapacity(alloc, 0);
+    defer disallowed.deinit(alloc);
     line: while (i < input.len) {
         defer line.clearRetainingCapacity();
         defer disallowed.clearRetainingCapacity();
@@ -63,9 +63,9 @@ fn part1(alloc: std.mem.Allocator, input: []const u8) !u32 {
                 skipLine(input, &i);
                 continue :line;
             } else {
-                try line.append(num);
+                try line.append(alloc, num);
                 if (rules.get(num)) |rule| {
-                    try disallowed.appendSlice(rule.items);
+                    try disallowed.appendSlice(alloc, rule.items);
                 }
             }
             if (input[i] != ',') {
@@ -82,7 +82,7 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !u32 {
     defer {
         var iter = rules.valueIterator();
         while (iter.next()) |next| {
-            next.deinit();
+            next.deinit(alloc);
         }
         rules.deinit();
     }
@@ -95,17 +95,17 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !u32 {
         i += 2;
         const res = try rules.getOrPut(right);
         if (res.found_existing) {
-            try res.value_ptr.append(left);
+            try res.value_ptr.append(alloc, left);
         } else {
-            res.value_ptr.* = std.ArrayList(u8).init(alloc);
-            try res.value_ptr.append(left);
+            res.value_ptr.* = try std.ArrayList(u8).initCapacity(alloc, 1);
+            res.value_ptr.appendAssumeCapacity(left);
         }
     }
     i += 2;
-    var line = std.ArrayList(u8).init(alloc);
-    defer line.deinit();
-    var disallowed = std.ArrayList(u8).init(alloc);
-    defer disallowed.deinit();
+    var line = try std.ArrayList(u8).initCapacity(alloc, 0);
+    defer line.deinit(alloc);
+    var disallowed = try std.ArrayList(u8).initCapacity(alloc, 0);
+    defer disallowed.deinit(alloc);
 
     var sum: u32 = 0;
     while (i < input.len) {
@@ -117,9 +117,9 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !u32 {
             if (std.mem.containsAtLeast(u8, disallowed.items, 1, &.{num})) {
                 valid = false;
             }
-            try line.append(num);
+            try line.append(alloc, num);
             if (rules.get(num)) |rule| {
-                try disallowed.appendSlice(rule.items);
+                try disallowed.appendSlice(alloc, rule.items);
             }
             if (input[i] != ',') {
                 i += 2;

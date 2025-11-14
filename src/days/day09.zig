@@ -1,8 +1,8 @@
 const std = @import("std");
 
-pub fn run(alloc: std.mem.Allocator, stdout: anytype) !void {
+pub fn run(alloc: std.mem.Allocator, stdout: *std.io.Writer) !void {
     const file = try std.fs.cwd().openFile("src/data/day09.txt", .{ .mode = .read_only });
-    const buffer = try file.reader().readAllAlloc(alloc, std.math.maxInt(u32));
+    const buffer = try file.readToEndAlloc(alloc, std.math.maxInt(u32));
     defer alloc.free(buffer);
 
     var timer = try std.time.Timer.start();
@@ -14,17 +14,17 @@ pub fn run(alloc: std.mem.Allocator, stdout: anytype) !void {
 }
 
 fn part1(alloc: std.mem.Allocator, input: []const u8) !u64 {
-    var files = std.ArrayList(u8).init(alloc);
-    defer files.deinit();
-    var freespace = std.ArrayList(u8).init(alloc);
-    defer freespace.deinit();
+    var files = try std.ArrayList(u8).initCapacity(alloc, 0);
+    defer files.deinit(alloc);
+    var freespace = try std.ArrayList(u8).initCapacity(alloc, 0);
+    defer freespace.deinit(alloc);
 
     for (input, 0..) |c, i| {
         if (c == '\r') break;
         if (i & 1 == 0) {
-            try files.append(c - '0');
+            try files.append(alloc, c - '0');
         } else {
-            try freespace.append(c - '0');
+            try freespace.append(alloc, c - '0');
         }
     }
     var checksum: u64 = 0;
@@ -42,7 +42,7 @@ fn part1(alloc: std.mem.Allocator, input: []const u8) !u64 {
             if (k == 0) {
                 if (i < files.items.len - 1) {
                     last = files.items.len - 1;
-                    k = files.pop();
+                    k = files.pop().?;
                 } else {
                     break;
                 }
@@ -62,16 +62,16 @@ fn part1(alloc: std.mem.Allocator, input: []const u8) !u64 {
 
 fn part2(alloc: std.mem.Allocator, input: []const u8) !u64 {
     const File = struct { avalable: bool, len: u8 };
-    var files = std.ArrayList(File).init(alloc);
-    defer files.deinit();
-    var freespace = std.ArrayList(u8).init(alloc);
-    defer freespace.deinit();
+    var files = try std.ArrayList(File).initCapacity(alloc, 0);
+    defer files.deinit(alloc);
+    var freespace = try std.ArrayList(u8).initCapacity(alloc, 0);
+    defer freespace.deinit(alloc);
     for (input, 0..) |c, i| {
         if (c == '\r') break;
         if (i & 1 == 0) {
-            try files.append(.{ .avalable = true, .len = c - '0' });
+            try files.append(alloc, .{ .avalable = true, .len = c - '0' });
         } else {
-            try freespace.append(c - '0');
+            try freespace.append(alloc, c - '0');
         }
     }
     var checksum: u64 = 0;

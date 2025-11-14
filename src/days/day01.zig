@@ -1,8 +1,8 @@
 const std = @import("std");
 
-pub fn run(alloc: std.mem.Allocator, stdout: anytype) !void {
+pub fn run(alloc: std.mem.Allocator, stdout: *std.io.Writer) !void {
     const file = try std.fs.cwd().openFile("src/data/day01.txt", .{ .mode = .read_only });
-    const buffer = try file.reader().readAllAlloc(alloc, std.math.maxInt(u32));
+    const buffer = try file.readToEndAlloc(alloc, std.math.maxInt(u32));
     defer alloc.free(buffer);
 
     var timer = try std.time.Timer.start();
@@ -30,9 +30,9 @@ fn nextLine(input: []const u8, i: *usize) void {
 
 fn part1(alloc: std.mem.Allocator, input: []const u8) !u32 {
     var left = try std.ArrayList(i32).initCapacity(alloc, 1000);
-    defer left.deinit();
+    defer left.deinit(alloc);
     var right = try std.ArrayList(i32).initCapacity(alloc, 1000);
-    defer right.deinit();
+    defer right.deinit(alloc);
 
     var i: usize = 0;
     while (i < input.len) {
@@ -57,7 +57,7 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !u32 {
     var hash = std.AutoHashMap(u32, u32).init(alloc);
     defer hash.deinit();
     var left = try std.ArrayList(u32).initCapacity(alloc, 1000);
-    defer left.deinit();
+    defer left.deinit(alloc);
 
     var i: usize = 0;
     while (i < input.len) {

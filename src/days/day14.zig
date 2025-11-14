@@ -1,8 +1,8 @@
 const std = @import("std");
 
-pub fn run(alloc: std.mem.Allocator, stdout: anytype) !void {
+pub fn run(alloc: std.mem.Allocator, stdout: *std.io.Writer) !void {
     const file = try std.fs.cwd().openFile("src/data/day14.txt", .{ .mode = .read_only });
-    const buffer = try file.reader().readAllAlloc(alloc, std.math.maxInt(u32));
+    const buffer = try file.readToEndAlloc(alloc, std.math.maxInt(u32));
     defer alloc.free(buffer);
 
     var timer = try std.time.Timer.start();
@@ -79,8 +79,8 @@ const Robot = struct { x: i32, y: i32, vx: i32, vy: i32 };
 fn part2(alloc: std.mem.Allocator, input: []const u8) !u32 {
     const width: i32 = 101;
     const height: i32 = 103;
-    var robots = std.ArrayList(Robot).init(alloc);
-    defer robots.deinit();
+    var robots = try std.ArrayList(Robot).initCapacity(alloc, 0);
+    defer robots.deinit(alloc);
     var i: usize = 0;
     while (i < input.len) {
         i += 2;
@@ -92,7 +92,7 @@ fn part2(alloc: std.mem.Allocator, input: []const u8) !u32 {
         i += 1;
         const vy = readInt(input, &i);
         i += 2;
-        try robots.append(Robot{ .x = x, .y = y, .vx = vx, .vy = vy });
+        try robots.append(alloc, Robot{ .x = x, .y = y, .vx = vx, .vy = vy });
     }
 
     var image: [height]u128 = undefined;
