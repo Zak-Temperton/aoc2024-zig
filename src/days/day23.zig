@@ -9,8 +9,9 @@ pub fn run(alloc: std.mem.Allocator, stdout: *std.io.Writer) !void {
     const p1 = try part1(alloc, buffer);
     const p1_time = timer.lap();
     const p2 = try part2(alloc, buffer);
+    defer alloc.free(p2);
     const p2_time = timer.read();
-    try stdout.print("Day23:\n  part1: {d} {d}ns\n  part2: {d} {d}ns\n", .{ p1, p1_time, p2, p2_time });
+    try stdout.print("Day23:\n  part1: {d} {d}ns\n  part2: {s} {d}ns\n", .{ p1, p1_time, p2, p2_time });
 }
 
 fn nameToNum(name: []u8) u16 {
@@ -18,16 +19,8 @@ fn nameToNum(name: []u8) u16 {
     return (@as(u16, name[0] - 'a') << 5) | @as(u16, name[1] - 'a');
 }
 
-fn part1(alloc: std.mem.Allocator, input: []u8) !u32 {
-    //32 preserves the first letter
+fn listConnections(alloc: std.mem.Allocator, input: []u8) ![32 * 26]?std.ArrayList(u16) {
     var connections: [32 * 26]?std.ArrayList(u16) = .{null} ** (32 * 26);
-    defer {
-        for (&connections) |*con_opt| {
-            if (con_opt.*) |*con| {
-                con.*.deinit(alloc);
-            }
-        }
-    }
     var i: usize = 0;
     while (i < input.len - 2) {
         const comp1 = nameToNum(input[i .. i + 2]);
@@ -44,6 +37,19 @@ fn part1(alloc: std.mem.Allocator, input: []u8) !u32 {
         } else {
             connections[comp2] = try std.ArrayList(u16).initCapacity(alloc, 1);
             connections[comp2].?.appendAssumeCapacity(comp1);
+        }
+    }
+    return connections;
+}
+
+fn part1(alloc: std.mem.Allocator, input: []u8) !u32 {
+    //32 preserves the first letter
+    var connections = try listConnections(alloc, input);
+    defer {
+        for (&connections) |*con_opt| {
+            if (con_opt.*) |*con| {
+                con.*.deinit(alloc);
+            }
         }
     }
     var count: u32 = 0;
@@ -67,8 +73,70 @@ fn part1(alloc: std.mem.Allocator, input: []u8) !u32 {
 
     return count / 2; //a,b,c == a,c,b
 }
-fn part2(alloc: std.mem.Allocator, input: []u8) !u32 {
-    _ = alloc;
-    _ = input;
-    return 0;
+
+fn tryExtendGroup(alloc: std.mem.Allocator, connections: []?std.ArrayList(u16), index: usize, currentGroup: *std.ArrayList(u16), maxGroup: *std.ArrayList(u16)) !void {
+    if (currentGroup.items.len > maxGroup.items.len) {
+        maxGroup.clearRetainingCapacity();
+        try maxGroup.appendSlice(alloc, currentGroup.items);
+    }
+    loop: for (connections[index].?.items) |con| {
+        if (con <= currentGroup.getLast()) continue;
+        if (connections[con].?.items.len < maxGroup.items.len) continue;
+        if (currentGroup.items.len >= connections[con].?.items.len) continue;
+        //must contain all in current group so must be >= to current group
+        for (currentGroup.items) |t| {
+            if (t == con) continue;
+            if (!std.mem.containsAtLeast(u16, connections[con].?.items, 1, &.{t})) {
+                continue :loop;
+            }
+        }
+        try currentGroup.append(alloc, @truncate(con));
+        try tryExtendGroup(alloc, connections, con, currentGroup, maxGroup);
+        _ = currentGroup.pop();
+    }
+}
+
+fn part2(alloc: std.mem.Allocator, input: []u8) ![]u8 {
+    var connections = try listConnections(alloc, input);
+    defer {
+        for (&connections) |*con_opt| {
+            if (con_opt.*) |*con| {
+                con.*.deinit(alloc);
+            }
+        }
+    }
+
+    for (&connections) |*con_opt| {
+        if (con_opt.*) |*con| {
+            std.mem.sort(u16, con.items, {}, comptime std.sort.asc(u16));
+        }
+    }
+
+    var currentGroup: std.ArrayList(u16) = try std.ArrayList(u16).initCapacity(alloc, 0);
+    defer currentGroup.deinit(alloc);
+    var maxGroup: std.ArrayList(u16) = try std.ArrayList(u16).initCapacity(alloc, 0);
+    defer maxGroup.deinit(alloc);
+
+    for (0..26) |i| {
+        for (0..26) |j| {
+            const index = (i << 5) | j;
+            if (connections[index]) |con| {
+                if (con.items.len < maxGroup.items.len) continue;
+                try currentGroup.append(alloc, @truncate(index));
+                try tryExtendGroup(alloc, &connections, index, &currentGroup, &maxGroup);
+                _ = currentGroup.pop();
+            }
+        }
+    }
+
+    //reformat into string of chars
+    var string = try std.ArrayList(u8).initCapacity(alloc, maxGroup.items.len * 3);
+    for (maxGroup.items) |item| {
+        string.appendAssumeCapacity(@truncate((item >> 5) + 'a'));
+        string.appendAssumeCapacity(@truncate((item & 0b11111) + 'a'));
+        string.appendAssumeCapacity(',');
+    }
+    _ = string.pop();
+
+    return string.toOwnedSlice(alloc);
 }
