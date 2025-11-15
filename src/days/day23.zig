@@ -20,6 +20,7 @@ fn nameToNum(name: []u8) u16 {
 }
 
 fn listConnections(alloc: std.mem.Allocator, input: []u8) ![32 * 26]?std.ArrayList(u16) {
+    //32 preserves the first letter
     var connections: [32 * 26]?std.ArrayList(u16) = .{null} ** (32 * 26);
     var i: usize = 0;
     while (i < input.len - 2) {
@@ -43,7 +44,6 @@ fn listConnections(alloc: std.mem.Allocator, input: []u8) ![32 * 26]?std.ArrayLi
 }
 
 fn part1(alloc: std.mem.Allocator, input: []u8) !u32 {
-    //32 preserves the first letter
     var connections = try listConnections(alloc, input);
     defer {
         for (&connections) |*con_opt| {
