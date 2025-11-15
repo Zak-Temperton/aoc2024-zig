@@ -81,9 +81,9 @@ fn tryExtendGroup(alloc: std.mem.Allocator, connections: []?std.ArrayList(u16), 
     }
     loop: for (connections[index].?.items) |con| {
         if (con <= currentGroup.getLast()) continue;
-        if (connections[con].?.items.len < maxGroup.items.len) continue;
+        if (maxGroup.items.len >= connections[con].?.items.len) continue;
         if (currentGroup.items.len >= connections[con].?.items.len) continue;
-        //must contain all in current group so must be >= to current group
+
         for (currentGroup.items) |t| {
             if (t == con) continue;
             if (!std.mem.containsAtLeast(u16, connections[con].?.items, 1, &.{t})) {
@@ -106,6 +106,7 @@ fn part2(alloc: std.mem.Allocator, input: []u8) ![]u8 {
         }
     }
 
+    //reorder so we can make assumptions later
     for (&connections) |*con_opt| {
         if (con_opt.*) |*con| {
             std.mem.sort(u16, con.items, {}, comptime std.sort.asc(u16));
