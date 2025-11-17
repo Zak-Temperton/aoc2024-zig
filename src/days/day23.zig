@@ -45,27 +45,24 @@ fn listConnections(alloc: std.mem.Allocator, input: []u8) ![32 * 26]?std.ArrayLi
 
 fn part1(alloc: std.mem.Allocator, input: []u8) !u32 {
     var connections = try listConnections(alloc, input);
-    defer {
-        for (&connections) |*con_opt| {
-            if (con_opt.*) |*con| {
-                con.*.deinit(alloc);
-            }
+    defer for (&connections) |*con_opt| {
+        if (con_opt.*) |*con| {
+            con.*.deinit(alloc);
         }
-    }
+    };
+
     var count: u32 = 0;
     for (@as(usize, ('t' - 'a') << 5)..@as(usize, ('t' - 'a') << 5) | 26) |a| {
-        if (connections[a]) |con_a| {
-            for (con_a.items) |b| {
-                if (b >> 5 == 't' - 'a' and b < a) continue; //ignore prev connection
-                if (connections[b]) |con_b| {
-                    for (con_b.items) |c| {
-                        if (c >> 5 == 't' - 'a' and c < a) continue; //ignore prev connection
-                        if (connections[c]) |con_c| {
-                            if (std.mem.containsAtLeast(u16, con_c.items, 1, &.{@intCast(a)})) {
-                                count += 1;
-                            }
-                        }
-                    }
+        if (connections[a] == null) continue;
+        const con_a = connections[a].?;
+        for (con_a.items) |b| {
+            if (b >> 5 == 't' - 'a' and b < a or connections[b] == null) continue; //ignore prev connection
+            const con_b = connections[b].?;
+            for (con_b.items) |c| {
+                if (c >> 5 == 't' - 'a' and c < a or connections[c] == null) continue; //ignore prev connection
+                const con_c = connections[c].?;
+                if (std.mem.containsAtLeast(u16, con_c.items, 1, &.{@intCast(a)})) {
+                    count += 1;
                 }
             }
         }
@@ -98,13 +95,11 @@ fn tryExtendGroup(alloc: std.mem.Allocator, connections: []?std.ArrayList(u16), 
 
 fn part2(alloc: std.mem.Allocator, input: []u8) ![]u8 {
     var connections = try listConnections(alloc, input);
-    defer {
-        for (&connections) |*con_opt| {
-            if (con_opt.*) |*con| {
-                con.*.deinit(alloc);
-            }
+    defer for (&connections) |*con_opt| {
+        if (con_opt.*) |*con| {
+            con.*.deinit(alloc);
         }
-    }
+    };
 
     //reorder so we can make assumptions later
     for (&connections) |*con_opt| {
@@ -121,12 +116,10 @@ fn part2(alloc: std.mem.Allocator, input: []u8) ![]u8 {
     for (0..26) |i| {
         for (0..26) |j| {
             const index = (i << 5) | j;
-            if (connections[index]) |con| {
-                if (con.items.len < maxGroup.items.len) continue;
-                try currentGroup.append(alloc, @truncate(index));
-                try tryExtendGroup(alloc, &connections, index, &currentGroup, &maxGroup);
-                _ = currentGroup.pop();
-            }
+            if (connections[index] == null or connections[index].items.len < maxGroup.items.len) continue;
+            try currentGroup.append(alloc, @truncate(index));
+            try tryExtendGroup(alloc, &connections, index, &currentGroup, &maxGroup);
+            _ = currentGroup.pop();
         }
     }
 
