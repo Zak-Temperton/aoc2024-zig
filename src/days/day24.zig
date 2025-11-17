@@ -290,24 +290,9 @@ fn part2(alloc: std.mem.Allocator, input: []u8) ![]u8 {
         const xy_xor = program.getPtr(.{ .left = .{ .x = z }, .right = .{ .y = z }, .gate = .XOR }).?;
         const xy_and = program.getPtr(.{ .left = .{ .x = z }, .right = .{ .y = z }, .gate = .AND }).?;
 
-        if (program.getPtr(.{ .left = carry.*, .right = xy_xor.*, .gate = .XOR }) == null) {
-            _ = try searchForRegister(alloc, carry, xy_xor, .XOR, &program, &swaps);
-        }
-
-        const carryxy_and = block: {
-            if (program.getPtr(.{ .left = carry.*, .right = xy_xor.*, .gate = .AND })) |found| {
-                break :block found;
-            } else {
-                break :block (try searchForRegister(alloc, carry, xy_xor, .AND, &program, &swaps)).?;
-            }
-        };
-        const xycarryxy_or = block: {
-            if (program.getPtr(.{ .left = xy_and.*, .right = carryxy_and.*, .gate = .OR })) |found| {
-                break :block found;
-            } else {
-                break :block (try searchForRegister(alloc, xy_and, carryxy_and, .OR, &program, &swaps)).?;
-            }
-        };
+        _ = try getFixedRegisterPtr(alloc, carry, xy_xor, .XOR, &program, &swaps);
+        const carryxy_and = try getFixedRegisterPtr(alloc, carry, xy_xor, .AND, &program, &swaps);
+        const xycarryxy_or = try getFixedRegisterPtr(alloc, xy_and, carryxy_and, .OR, &program, &swaps);
         carry = xycarryxy_or;
     }
 
@@ -328,6 +313,21 @@ fn asc(_: void, left: Register, right: Register) bool {
     return left.lth(right);
 }
 
+fn getFixedRegisterPtr(
+    alloc: std.mem.Allocator,
+    left: *Register,
+    right: *Register,
+    gate: Gate,
+    program: *std.AutoHashMap(Wire, Register),
+    swaps: *std.ArrayList(Register),
+) !*Register {
+    if (program.getPtr(.{ .left = left.*, .right = right.*, .gate = gate })) |found| {
+        return found;
+    } else {
+        return (try searchForRegister(alloc, left, right, gate, program, swaps));
+    }
+}
+
 fn searchForRegister(
     alloc: std.mem.Allocator,
     left: *Register,
@@ -335,7 +335,7 @@ fn searchForRegister(
     gate: Gate,
     program: *std.AutoHashMap(Wire, Register),
     swaps: *std.ArrayList(Register),
-) !?*Register {
+) !*Register {
     var val_iter = program.valueIterator();
     while (val_iter.next()) |val| {
         if (program.getPtr(.{ .left = left.*, .right = val.*, .gate = gate })) |ptr| {
@@ -351,5 +351,5 @@ fn searchForRegister(
             return ptr;
         }
     }
-    return null;
+    unreachable;
 }
